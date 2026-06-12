@@ -436,6 +436,28 @@ html[data-theme="light"] .wn-overlay{background:hsl(228 40% 30% / .25)}
 .explain.none{border-left-color:var(--line-strong)}
 .explain.none .explain-body{color:var(--ink-soft);font-style:italic}
 
+/* ====== Tryb fiszek ====== */
+.flash-hint{
+  margin:4px 0 14px;padding:18px 16px;border-radius:13px;text-align:center;
+  border:1px dashed var(--line-strong);color:var(--ink-soft);font-size:.95rem;
+}
+.flash-answer{margin-top:0}
+.flash-rate{display:flex;gap:12px;margin-top:16px}
+.flash-btn{
+  flex:1;padding:14px;border-radius:13px;cursor:pointer;font-family:inherit;
+  font-weight:700;font-size:.98rem;border:1px solid var(--line);transition:.2s var(--ease);
+}
+.flash-btn.yes{background:var(--ok-bg);border-color:var(--ok-bd);color:var(--ok-ink)}
+.flash-btn.yes:hover{background:var(--ok);color:var(--bg);transform:translateY(-1px)}
+.flash-btn.no{background:var(--no-bg);border-color:var(--no-bd);color:var(--no-ink)}
+.flash-btn.no:hover{background:var(--no);color:var(--bg);transform:translateY(-1px)}
+
+/* ====== Aktywny tryb nauki w menu + licznik słabych punktów ====== */
+.menu-item.active{color:var(--accent)}
+.menu-item.active .mi-ic{color:var(--accent)}
+.mi-count{margin-left:auto;font-size:.7rem;font-weight:700;background:var(--accent);color:var(--on-accent);
+  border-radius:999px;padding:1px 7px;min-width:18px;text-align:center;line-height:1.6}
+
 /* ====== Modal przeglądania / ulubionych ====== */
 .browse-modal{
   position:relative;max-width:680px;width:100%;max-height:86vh;display:flex;flex-direction:column;
@@ -544,6 +566,10 @@ html[data-theme="light"] .wn-overlay{background:hsl(228 40% 30% / .25)}
       <div class="menu-wrap">
         <button class="tool-icon" id="menu-btn" onclick="toggleMenu()" title="Menu i ustawienia" aria-haspopup="true" aria-expanded="false" aria-label="Menu">⚙</button>
         <div class="menu-pop hidden" id="menu-pop" role="menu">
+          <div class="menu-section">Tryby nauki</div>
+          <button class="menu-item" id="mi-weak" role="menuitem" onclick="closeMenu(); enterWeakMode()" title="Ćwicz tylko pytania jeszcze nieopanowane"><span class="mi-ic">🎯</span><span>Słabe punkty</span><span id="mi-weak-count" class="mi-count hidden">0</span></button>
+          <button class="menu-item" id="mi-flash" role="menuitem" onclick="closeMenu(); enterFlashMode()" title="Najpierw przypomnij sobie odpowiedź, potem ją odsłoń"><span class="mi-ic">🔄</span><span>Tryb fiszek</span></button>
+          <div class="menu-divider"></div>
           <div class="menu-section">Ustawienia</div>
           <label class="switch" id="theme-switch">
             <input type="checkbox" id="theme-toggle">
@@ -604,7 +630,7 @@ html[data-theme="light"] .wn-overlay{background:hsl(228 40% 30% / .25)}
   </div>
 
   <!-- KONFIG: WERSJA — numer wersji aplikacji widoczny w stopce -->
-  <footer class="credit">Maciej Skiba | v1.8.0</footer>
+  <footer class="credit">Maciej Skiba | v1.9.0</footer>
   <div class="whatsnew-wrap">
     <button class="whatsnew-btn" onclick="openWhatsNew()">Co nowego?</button>
   </div>
@@ -618,6 +644,8 @@ html[data-theme="light"] .wn-overlay{background:hsl(228 40% 30% / .25)}
     <div class="wn-ver">Najnowsze zmiany</div>
     <!-- KONFIG: CO-NOWEGO — lista zmian w okienku „Co nowego?" (najnowsze na górze) -->
     <ul class="wn-list">
+      <li><b>Tryb fiszek.</b> W menu <span class="wn-em">⚙</span> → <span class="wn-em">🔄 Tryb fiszek</span>: najpierw widzisz samo pytanie, przypominasz sobie odpowiedź, a potem odsłaniasz ją razem z wyjaśnieniem i oceniasz, czy wiedziałeś/-aś.</li>
+      <li><b>Słabe punkty.</b> W menu <span class="wn-em">⚙</span> → <span class="wn-em">🎯 Słabe punkty</span>: drill złożony tylko z pytań jeszcze nieopanowanych — najszybsza droga do poprawy przed kolokwium. Licznik pokazuje, ile ich zostało.</li>
       <li><b>Wyjaśnienia odpowiedzi.</b> Po udzieleniu odpowiedzi pod pytaniem pojawia się <span class="wn-em">💡 Wyjaśnienie</span> poprawnej odpowiedzi. Pytania bez gotowego wyjaśnienia mają dyskretną notkę.</li>
       <li><b>Start od pytania 1.</b> Przy pierwszym uruchomieniu strona startuje od pytania 1 i bez tasowania — tasowanie włączysz w menu <span class="wn-em">⚙</span>.</li>
       <li><b>Skąd materiał?</b> 38 pytan jest od dr. Ackermann a reszta to AI generated w oparciu o dostępne materiały.</li>
@@ -665,6 +693,8 @@ const PAGE_TITLE = 'Procesy poznawcze';
 const BRAND_NAME = 'Procesy poznawcze';
 const BRAND_SUFFIX_LEARN = '— Zestaw ćwiczeń';      // dopisek w trybie nauki
 const BRAND_SUFFIX_TEST  = '— Test (40 pytań)'; // dopisek w trybie testu (liczba pytań: szukaj "KONFIG: TEST")
+const BRAND_SUFFIX_WEAK  = '— Słabe punkty';        // dopisek w trybie powtórki słabych pytań
+const BRAND_SUFFIX_FLASH = '— Fiszki';              // dopisek w trybie fiszek
 
 document.title = PAGE_TITLE;
 document.getElementById('brand-name').textContent = BRAND_NAME;
@@ -1791,9 +1821,12 @@ function masteryBucket(id){
   if(!(id in mastery)) return 'new';
   return mastery[id] >= MASTERY_GRADUATE ? 'mastered' : 'weak';
 }
-// op: +1 (wzmocnij) lub 'reset' (błąd kasuje opanowanie). Działa tylko w trybie nauki.
+// Tryby, w których aktualizujemy trwałe opanowanie i powtórki w obrębie sesji.
+function isLearningMode(){ return currentMode==='normal' || currentMode==='weak' || currentMode==='flash'; }
+
+// op: +1 (wzmocnij) lub 'reset' (błąd kasuje opanowanie). Działa tylko w trybach nauki.
 function bumpMastery(id, op){
-  if(currentMode !== 'normal') return;
+  if(!isLearningMode()) return;
   let v = (id in mastery) ? mastery[id] : 0;
   v = (op === 'reset') ? 0 : Math.min(MASTERY_GRADUATE + 1, v + op);
   mastery[id] = v;
@@ -1815,6 +1848,16 @@ function cloneForQueue(useShuffle){
 function buildQueue(){
   // Test: zawsze losowa kolejność i losowe opcje, bez priorytetyzacji.
   if(currentMode === 'test'){
+    queue = shuffle(activeBank).map(cloneForQueue(true));
+    return;
+  }
+  // Fiszki: stała kolejność po numerach — przewidywalna talia.
+  if(currentMode === 'flash'){
+    queue = activeBank.map(cloneForQueue(false));
+    return;
+  }
+  // Słabe punkty: pytania jeszcze nieopanowane, tasowane dla urozmaicenia.
+  if(currentMode === 'weak'){
     queue = shuffle(activeBank).map(cloneForQueue(true));
     return;
   }
@@ -1840,7 +1883,7 @@ function insertRetry(srcQ, stage, lapses){
   const baseQ = BANK.find(b=>b.id===srcQ.id);
   if(!baseQ) return;
   const retry = {...baseQ, isRetry:true, stage, lapses, options:[...baseQ.options]};
-  const useShuffle = currentMode === 'test' ? true : shuffleOn;
+  const useShuffle = currentMode === 'normal' ? shuffleOn : true;
   if(useShuffle && !retry.correct.includes(',')) retry.options = shuffle(retry.options);
   const base = (stage === 'confirm') ? gapFrom(RETRY_GAP_CONFIRM) : gapFrom(RETRY_GAP_RELEARN);
   const extra = Math.max(0, lapses - 1) * LAPSE_EXPANSION;   // im więcej powtórnych błędów, tym dalej
@@ -1892,7 +1935,10 @@ function bloomWrong(){
    PERSYSTENCJA Z ROZDZIELENIEM TRYBÓW W LOCALSTORAGE
    ============================================================ */
 function getSaveKey() {
-  return currentMode === 'test' ? 'procesyPozn_v1_test' : 'procesyPozn_v1_normal';
+  return currentMode === 'test'  ? 'procesyPozn_v1_test'
+       : currentMode === 'weak'  ? 'procesyPozn_v1_weak'
+       : currentMode === 'flash' ? 'procesyPozn_v1_flash'
+       : 'procesyPozn_v1_normal';
 }
 
 function saveState(){
@@ -1945,10 +1991,10 @@ function loadState(){
     if(!queue.length) return false;    // po uzgodnieniu nic nie zostało → zacznij od nowa
     if(queue.length !== lenBefore) answers = {}; // pozycje się przesunęły → podgląd nieaktualny
 
-    if(currentMode === 'test' && s.activeBankIds){
+    if((currentMode === 'test' || currentMode === 'weak') && s.activeBankIds){
       activeBank = s.activeBankIds.map(id => BANK.find(q => q.id === id)).filter(Boolean);
     } else {
-      activeBank = BANK;
+      activeBank = BANK;   // 'normal' i 'flash' korzystają z pełnej bazy
     }
     return true;
   }catch(e){ return false; }
@@ -1987,21 +2033,33 @@ function updateStats(){
   }
   $('lvl-name').textContent = curLvl.name;
   $('lvl-xp').textContent = nextLvl ? `${globalXP}/${nextLvl.req}` : globalXP;
+
+  // Licznik „słabych punktów" (pytania w toku, jeszcze nieopanowane) w menu.
+  const wc=$('mi-weak-count');
+  if(wc){
+    const n=BANK.reduce((a,q)=> a + (masteryBucket(q.id)==='weak' ? 1 : 0), 0);
+    wc.textContent=n; wc.classList.toggle('hidden', n===0);
+  }
 }
 
 function updateUIForMode(){
   const mstat=$('mastery-stat');
-  if(currentMode === 'test') {
-      $('btn-mode').textContent = "← Tryb nauki";
-      $('brand-em').textContent = BRAND_SUFFIX_TEST;   // KONFIG: NAZWA-STRONY (stała na początku skryptu)
-      $('shuffle-switch').classList.add('hidden'); // Ukrycie widoczności dla testu
-      if(mstat) mstat.classList.add('hidden');     // opanowanie kształtuje tylko tryb nauki
-  } else {
-      $('btn-mode').textContent = "🎓 Tryb testu";
-      $('brand-em').textContent = BRAND_SUFFIX_LEARN;  // KONFIG: NAZWA-STRONY (stała na początku skryptu)
-      $('shuffle-switch').classList.remove('hidden'); // Przywrócenie dla bazy
-      if(mstat) mstat.classList.remove('hidden');
-  }
+  const m=currentMode;
+  // Główny przycisk: w zwykłej nauce → wejście w test; w pozostałych trybach → powrót do nauki.
+  $('btn-mode').textContent = (m==='normal') ? '🎓 Tryb testu' : '← Tryb nauki';
+  // Dopisek w nagłówku zależny od trybu. KONFIG: NAZWA-STRONY (stałe na początku skryptu)
+  $('brand-em').textContent = m==='test'  ? BRAND_SUFFIX_TEST
+                            : m==='weak'  ? BRAND_SUFFIX_WEAK
+                            : m==='flash' ? BRAND_SUFFIX_FLASH
+                            : BRAND_SUFFIX_LEARN;
+  // Tasowanie ma sens tylko w zwykłej nauce.
+  $('shuffle-switch').classList.toggle('hidden', m!=='normal');
+  // „Opanowane" kształtują tylko tryby nauki — ukryj w teście.
+  if(mstat) mstat.classList.toggle('hidden', m==='test');
+  // Podświetl aktywny tryb nauki w menu.
+  const miW=$('mi-weak'), miF=$('mi-flash');
+  if(miW) miW.classList.toggle('active', m==='weak');
+  if(miF) miF.classList.toggle('active', m==='flash');
 }
 
 /* Wyjaśnienie poprawnej odpowiedzi — pokazywane PO udzieleniu odpowiedzi.
@@ -2017,6 +2075,73 @@ function renderExplanation(q, box){
     div.innerHTML = '<div class="explain-h">💡 Wyjaśnienie</div><div class="explain-body">Dla tego pytania nie ma jeszcze szczegółowego wytłumaczenia.</div>';
   }
   box.appendChild(div);
+}
+
+/* ============================================================
+   TRYB FISZEK (aktywne przypominanie)
+   ------------------------------------------------------------
+   Front: samo pytanie. Po „Pokaż odpowiedź" odsłaniamy poprawną
+   odpowiedź ORAZ wyjaśnienie, a użytkownik sam ocenia, czy wiedział
+   (ocena zasila opanowanie, XP i powtórki tak jak zwykła odpowiedź).
+   ============================================================ */
+function correctAnswerHtml(q){
+  if(q.correct.includes(',')){
+    const txt=q.correct.split(',').map(l=>{const o=q.options.find(x=>x.letter===l);return o?escapeHtml(o.text):l;}).join(' → ');
+    return '<b>Prawidłowa kolejność:</b> '+txt;
+  }
+  const co=q.options.find(o=>o.letter===q.correct);
+  return co ? '<b>'+co.letter.toUpperCase()+')</b> '+escapeHtml(co.text) : escapeHtml(q.correct);
+}
+function renderFlashAnswer(q, box){
+  const fb=document.createElement('div'); fb.className='feedback ok flash-answer';
+  fb.innerHTML='Poprawna odpowiedź: '+correctAnswerHtml(q);
+  box.appendChild(fb);
+  renderExplanation(q, box);
+}
+function renderFlashcard(q, box){
+  box.classList.remove('review');
+  $('dontknow').classList.add('hidden');
+  const ans=answers[idx];
+  if(ans){                                   // karta już oceniona (np. po cofnięciu) — pokaż tył
+    isAnswered=true;
+    renderFlashAnswer(q, box);
+    const note=document.createElement('div'); note.className='review-hint';
+    note.textContent = ans.ok ? 'Twoja ocena: wiedziałem/-am ✓' : 'Twoja ocena: do powtórki ✗';
+    box.appendChild(note);
+    $('next').classList.remove('hidden');
+    return;
+  }
+  // Front — tylko pytanie i przycisk odsłonięcia.
+  isAnswered=false;
+  $('next').classList.add('hidden');
+  const hint=document.createElement('div'); hint.className='flash-hint';
+  hint.textContent='Spróbuj przypomnieć sobie odpowiedź, a potem ją odsłoń.';
+  box.appendChild(hint);
+  const btn=document.createElement('button');
+  btn.id='flash-reveal'; btn.className='primary'; btn.type='button';
+  btn.innerHTML='🔄 Pokaż odpowiedź <span class="kbd">Enter</span>';
+  btn.onclick=()=>revealFlash(q, box);
+  box.appendChild(btn);
+}
+function revealFlash(q, box){
+  if(isAnswered) return;
+  const r=$('flash-reveal'); if(r) r.remove();
+  const h=box.querySelector('.flash-hint'); if(h) h.remove();
+  renderFlashAnswer(q, box);
+  const rate=document.createElement('div'); rate.className='flash-rate';
+  const no=document.createElement('button');  no.type='button';  no.className='flash-btn no';  no.textContent='✗ Nie wiedziałem';
+  const yes=document.createElement('button'); yes.type='button'; yes.className='flash-btn yes'; yes.textContent='✓ Wiedziałem';
+  no.onclick=()=>rateFlash(q,false); yes.onclick=()=>rateFlash(q,true);
+  rate.appendChild(no); rate.appendChild(yes);
+  box.appendChild(rate);
+}
+function rateFlash(q, ok){
+  if(isAnswered) return; isAnswered=true;
+  history[idx]=snapshotState();
+  if(ok){ correct(q); } else { mistake(q, '(fiszka — nie wiedziałem)'); }
+  answers[idx]={picked: ok?'(fiszka — wiedziałem)':'(fiszka — do powtórki)', ok, flash:true, seq:q.correct.includes(',')};
+  saveState();
+  showQuestion();                               // przerysuj jako oceniony tył fiszki
 }
 
 function showQuestion(){
@@ -2036,6 +2161,9 @@ function showQuestion(){
   updateFavBtn();
 
   const box=$('options'); box.innerHTML='';
+
+  if(currentMode === 'flash'){ renderFlashcard(q, box); updateStats(); return; }
+
   const ans = answers[idx];
 
   if(ans){
@@ -2175,7 +2303,7 @@ function updateBackBtn(){
 }
 
 function renderSeq(q,box){
-  const forceShuffle = currentMode === 'test' ? true : shuffleOn;
+  const forceShuffle = currentMode === 'normal' ? shuffleOn : true;
   if(!curSeq.length || curSeq._for!==q.id){
     curSeq = forceShuffle ? shuffle(q.options) : [...q.options];
     curSeq._for=q.id;
@@ -2225,7 +2353,7 @@ function correct(q){
   } else {
     // Poprawna odpowiedź w powtórce — mniejsza nagroda XP (+1).
     globalXP += 1;
-    if(currentMode === 'normal'){
+    if(isLearningMode()){
       if(q.stage === 'relearn'){
         // Pierwszy sukces po błędzie → zaplanuj POTWIERDZENIE z większym odstępem (spaced success).
         insertRetry(q, 'confirm', q.lapses || 1);
@@ -2254,8 +2382,8 @@ function mistake(q, userAnswerStr){
   bloomWrong();
   registerCat('bad');
 
-  // Ponowne wstawienie tylko w trybie nauki i do limitu (bezpiecznik przed niekończącą się sesją).
-  if(currentMode === 'normal' && lapses <= MAX_LAPSES){
+  // Ponowne wstawienie tylko w trybach nauki i do limitu (bezpiecznik przed niekończącą się sesją).
+  if(isLearningMode() && lapses <= MAX_LAPSES){
     insertRetry(q, 'relearn', lapses);
   }
 }
@@ -2355,28 +2483,58 @@ $('shuffle-toggle').addEventListener('change', e=>{
   startFresh(true);
 });
 
-function toggleMode() {
-  saveState();
-  currentMode = (currentMode === 'normal') ? 'test' : 'normal';
-  localStorage.setItem('procesyPozn_v1_currentMode', currentMode);
-  
-  updateUIForMode();
-  
-  if (loadState()) {
-    if (idx >= queue.length) {
-      startFresh(false);
-    } else {
-      $('summary').classList.add('hidden');
-      $('quiz').classList.remove('hidden');
-      applyBloom();
-      showQuestion();
+/* Ustawia zestaw pytań (activeBank) dla bieżącego trybu.
+   Zwraca false, gdy tryb „słabe punkty" nie ma czego ćwiczyć (wraca wtedy do nauki). */
+function setupActiveBankForMode(){
+  if(currentMode === 'test'){
+    activeBank = shuffle([...BANK]).slice(0, 40); /* KONFIG: TEST — liczba pytań w trybie testu */
+  } else if(currentMode === 'weak'){
+    activeBank = BANK.filter(q => masteryBucket(q.id) === 'weak');   // pytania w toku (nieopanowane)
+    if(!activeBank.length){
+      currentMode = 'normal';
+      try{ localStorage.setItem('procesyPozn_v1_currentMode','normal'); }catch(e){}
+      updateUIForMode();
+      activeBank = BANK;
+      return false;
     }
   } else {
-    if(currentMode === 'test') activeBank = shuffle([...BANK]).slice(0, 40) /* KONFIG: TEST — liczba pytań w trybie testu */;
-    else activeBank = BANK;
-    startFresh(false);
+    activeBank = BANK;   // 'normal' i 'flash' → pełna baza
   }
+  return true;
 }
+
+/* Wznów zapisaną sesję bieżącego trybu albo (jeśli jej nie ma) zacznij nową. */
+function resumeOrFresh(){
+  if(loadState()){
+    $('shuffle-toggle').checked=shuffleOn;
+    $('shuffle-switch').classList.toggle('on', shuffleOn);
+    if(idx >= queue.length){ startFresh(false); }
+    else { $('summary').classList.add('hidden'); $('quiz').classList.remove('hidden'); applyBloom(); showQuestion(); }
+    return true;
+  }
+  return false;
+}
+
+function switchMode(target){
+  if(target === currentMode) return;
+  saveState();                                  // zapisz sesję dotychczasowego trybu
+  currentMode = target;
+  try{ localStorage.setItem('procesyPozn_v1_currentMode', currentMode); }catch(e){}
+  updateUIForMode();
+
+  if(resumeOrFresh()) return;                   // jest zapisana sesja tego trybu → wznów
+
+  const ok = setupActiveBankForMode();          // brak sesji → przygotuj nową
+  if(!ok){
+    alert('🎉 Świetna robota! Nie masz teraz słabych punktów — wszystkie przerobione pytania są opanowane.\n\nĆwicz w trybie nauki lub fiszek, a tu wrócą te, z którymi masz kłopot.');
+    if(resumeOrFresh()) return;                 // po powrocie do nauki — wznów istniejącą sesję, jeśli jest
+  }
+  startFresh(false);
+}
+
+function toggleMode(){ switchMode(currentMode === 'normal' ? 'test' : 'normal'); }
+function enterWeakMode(){ switchMode(currentMode === 'weak'  ? 'normal' : 'weak'); }
+function enterFlashMode(){ switchMode(currentMode === 'flash' ? 'normal' : 'flash'); }
 
 function startFresh(keepBloom){
   buildQueue();
@@ -2464,11 +2622,8 @@ $('import-file').addEventListener('change', e => {
 function resetSession(){
   if(score > 0 && !confirm("Zresetować bieżącą sesję? Obecny postęp zostanie utracony.")) return;
   clearState();
-  if(currentMode === 'test') {
-      activeBank = shuffle([...BANK]).slice(0, 40) /* KONFIG: TEST — liczba pytań w trybie testu */; 
-  } else {
-      activeBank = BANK;
-  }
+  const ok = setupActiveBankForMode();
+  if(!ok) alert('🎉 Nie masz już słabych punktów — wszystkie przerobione pytania są opanowane.');
   shuffleOn=false;
   $('shuffle-toggle').checked=false;
   $('shuffle-switch').classList.remove('on');
@@ -2830,8 +2985,7 @@ function init(){
     if(idx>=queue.length){ finish(); }
     else { $('summary').classList.add('hidden'); $('quiz').classList.remove('hidden'); showQuestion(); }
   } else {
-    if(currentMode === 'test') activeBank = shuffle([...BANK]).slice(0, 40) /* KONFIG: TEST — liczba pytań w trybie testu */;
-    else activeBank = BANK;
+    setupActiveBankForMode();   // obsługuje też tryby 'weak'/'flash' (i powrót do nauki, gdy brak słabych punktów)
     $('shuffle-toggle').checked=shuffleOn;
     $('shuffle-switch').classList.toggle('on', shuffleOn);
     updateStats();
@@ -2860,11 +3014,12 @@ document.addEventListener('keydown', e=>{
   const q=queue[idx]; if(!q) return;
   if(e.key==='Enter'){
     if(!$('next').classList.contains('hidden')) $('next').click();
+    else if(currentMode==='flash' && !isAnswered){ const r=$('flash-reveal'); if(r) r.click(); }
     else if(q.correct.includes(',') && !isAnswered){ const b=$('checkseq'); if(b) b.click(); }
     return;
   }
   if(e.key==='ArrowLeft'){ if(idx>0) $('back').click(); return; }
-  if(!isAnswered && !q.correct.includes(',')){
+  if(currentMode!=='flash' && !isAnswered && !q.correct.includes(',')){
     const k=e.key.toLowerCase();
     if('abcdef'.includes(k)){
       document.querySelectorAll('.option').forEach(o=>{ if(o.dataset.letter===k) o.click(); });
