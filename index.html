@@ -422,6 +422,20 @@ html[data-theme="light"] .wn-overlay{background:hsl(228 40% 30% / .25)}
 .review-hint{margin-top:14px;font-size:.82rem;color:var(--ink-soft);text-align:center;
   border:1px dashed var(--line-strong);border-radius:10px;padding:10px 12px}
 
+/* ====== Wyjaśnienie poprawnej odpowiedzi (po udzieleniu odpowiedzi) ====== */
+.explain{
+  margin-top:16px;padding:15px 18px;border-radius:14px;
+  background:var(--field);border:1px solid var(--line);border-left:3px solid var(--accent);
+  font-size:.96rem;line-height:1.6;color:var(--ink);
+  animation:rise .4s var(--ease);
+}
+.explain-h{
+  display:flex;align-items:center;gap:7px;margin-bottom:7px;
+  font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-soft);
+}
+.explain.none{border-left-color:var(--line-strong)}
+.explain.none .explain-body{color:var(--ink-soft);font-style:italic}
+
 /* ====== Modal przeglądania / ulubionych ====== */
 .browse-modal{
   position:relative;max-width:680px;width:100%;max-height:86vh;display:flex;flex-direction:column;
@@ -590,7 +604,7 @@ html[data-theme="light"] .wn-overlay{background:hsl(228 40% 30% / .25)}
   </div>
 
   <!-- KONFIG: WERSJA — numer wersji aplikacji widoczny w stopce -->
-  <footer class="credit">Maciej Skiba | v1.7.0</footer>
+  <footer class="credit">Maciej Skiba | v1.8.0</footer>
   <div class="whatsnew-wrap">
     <button class="whatsnew-btn" onclick="openWhatsNew()">Co nowego?</button>
   </div>
@@ -604,6 +618,8 @@ html[data-theme="light"] .wn-overlay{background:hsl(228 40% 30% / .25)}
     <div class="wn-ver">Najnowsze zmiany</div>
     <!-- KONFIG: CO-NOWEGO — lista zmian w okienku „Co nowego?" (najnowsze na górze) -->
     <ul class="wn-list">
+      <li><b>Wyjaśnienia odpowiedzi.</b> Po udzieleniu odpowiedzi pod pytaniem pojawia się <span class="wn-em">💡 Wyjaśnienie</span> poprawnej odpowiedzi. Pytania bez gotowego wyjaśnienia mają dyskretną notkę.</li>
+      <li><b>Start od pytania 1.</b> Przy pierwszym uruchomieniu strona startuje od pytania 1 i bez tasowania — tasowanie włączysz w menu <span class="wn-em">⚙</span>.</li>
       <li><b>Skąd materiał?</b> 38 pytan jest od dr. Ackermann a reszta to AI generated w oparciu o dostępne materiały.</li>
       <li><b>Specjalne podziękowania dla:</b> Laury Śmigielskiej, Adrianny Trawickiej i Zuzanny Borek - za podzielenie się swoimi materiałami!</li>
       <li><b>Nowy wygląd.</b> Odświeżona kolorystyka w stylu mlecznego szkła, delikatne animacje i poświata, która nadal nagradza dobre odpowiedzi.</li>
@@ -659,7 +675,7 @@ document.getElementById('brand-name').textContent = BRAND_NAME;
    wybór zapisuje się w localStorage i ma pierwszeństwo przed domyślnym.
    ============================================================ */
 const DEFAULT_THEME = 'dark';
-const THEME_KEY = 'socjoQuiz_v2_theme';
+const THEME_KEY = 'procesyPozn_v1_theme';
 function setTheme(t){
   document.documentElement.dataset.theme = t;
   try{ localStorage.setItem(THEME_KEY, t); }catch(e){}
@@ -1520,7 +1536,128 @@ const answersText = `
 (111)-a (112)-c (113)-b (114)-b (115)-c (116)-c (117)-b (118)-c (119)-b (120)-a 
 (121)-b (122)-a (123)-b (124)-c (125)-b (126)-c (127)-a (128)-b (129)-a (130)-a 
 (131)-b (132)-a (133)-a (134)-b (135)-b (136)-b (137)-c (138)-b (139)-c (140)-a 
-(141)-b (142)-a (143)-b (144)-c (145)-b (146)-b (147)-c (148)-c 
+(141)-b (142)-a (143)-b (144)-c (145)-b (146)-b (147)-c (148)-c (149)-c
+`;
+
+/* ============================================================
+   KONFIG: WYTLUMACZENIA — wyjaśnienia poprawnych odpowiedzi.
+   Pokazują się pod pytaniem PO udzieleniu odpowiedzi.
+   Format: jedno wyjaśnienie na linię, zaczynające się od „(numer)".
+   Nie każde pytanie musi mieć wyjaśnienie — dla pytań bez wpisu
+   pokaże się dyskretna notka „brak szczegółowego wytłumaczenia".
+   ============================================================ */
+const explanationsText = `
+(1) Definicja psychologii poznawczej — nauka o procesach i strukturach poznawczych oraz o zasadach działania umysłu. (a) to behawioryzm, (b) psychoanaliza, (e) psychologia społeczna.
+(2) Poznanie jest aktywne i adaptacyjne: reguluje zachowanie i poprzedza każde działanie, więc „czysto bierny" przeczy jego istocie. Pozostałe zdania są prawdziwe.
+(3) Procesy złożone to m.in. myślenie, podejmowanie decyzji i rozwiązywanie problemów. Percepcja, uwaga, pamięć i kontrola poznawcza należą do elementarnych.
+(4) Behawioryzm zakładał, że skoro procesów wewnętrznych nie da się obserwować, bada się wyłącznie związek bodziec–reakcja.
+(5) Rewolucja poznawcza odeszła od behawioryzmu — uznała, że żeby zrozumieć zachowanie, trzeba badać „wnętrze": pamięć, myślenie, uwagę, decyzje.
+(6) Metafora komputera dała narzędzie do modelowania działania umysłu i stawiania hipotez — nie twierdzenie, że mózg dosłownie jest procesorem.
+(7) fMRI, PET, EEG i MEG to techniki obrazowania pracy mózgu (metoda związana z rozwojem neuronauki).
+(8) Głównym ograniczeniem obserwacji jest subiektywność badacza.
+(9) O związku przyczynowym wnioskujemy, gdy wynik w warunkach eksperymentalnych różni się od kontrolnych — to skutek manipulacji zmienną niezależną.
+(10) Modele koneksjonistyczne są inspirowane budową mózgu i odtwarzają m.in. zapominanie, rozpoznawanie wzorców czy naukę gramatyki.
+(11) Neuropsychologia traktuje uszkodzenie mózgu jak „naturalny eksperyment", wiążąc powstały deficyt z funkcją danego obszaru.
+(12) Percepcja to aktywna interpretacja danych i tworzenie reprezentacji — nie gwarantuje dosłownego obrazu rzeczywistości. (a/d) to recepcja, (c) transdukcja.
+(13) Recepcja jest pasywna — receptor jedynie reaguje na bodziec; interpretacja to już percepcja.
+(14) Recepcja + percepcja = spostrzeganie.
+(15) Analizator to cały system: receptory + drogi nerwowe + struktury, wyspecjalizowany w danej modalności — nie pojedynczy receptor czy ośrodek.
+(16) Bodziec dystalny istnieje obiektywnie poza organizmem i emituje energię. (b/c/d) opisują bodziec proksymalny, (e) to impuls nerwowy.
+(17) Obraz na siatkówce to efekt bodźca na receptorze = bodziec proksymalny (samo jabłko byłoby dystalnym).
+(18) Transdukcja to zamiana energii bodźca na impuls nerwowy. (a) to percepcja, (d) adaptacja.
+(19) Kolejność: bodziec dystalny (energia) → proksymalny na receptorze → potencjał receptorowy → po przekroczeniu progu potencjał czynnościowy.
+(20) Spór asocjacjonizm–Gestalt dotyczył tego, czy spostrzeżenie jest prostą sumą wrażeń, czy nową, niepodzielną całością.
+(21) Asocjacjonizm (atomizm): świadomość składa się z elementarnych „atomów" (wrażeń), a wszystkie części pola są jednakowo ważne.
+(22) Burza, a po niej grzmot — kojarzenie przez następstwo, czyli styczność w czasie.
+(23) Szyszki leżące blisko siebie łączymy w zbiór — styczność w przestrzeni.
+(24) Dwa kolory koszulek porządkują boisko w grupy — kojarzenie przez podobieństwo.
+(25) Gestalt: spostrzeżenia są pierwotne, a całość to coś więcej niż suma części.
+(26) To zdanie jest fałszywe — w rzeczywistości figura jest jaśniejsza, a tło ciemniejsze (odwrotnie niż w opcji). Pozostałe opisują figurę/tło poprawnie.
+(27) Obiekty położone blisko siebie grupujemy — zasada bliskości.
+(28) Łagodne, nieprzerwane przebiegi widzimy jako ciągłe — zasada ciągłości.
+(29) Domknięcie przerywanego trójkąta do pełnego — zasada zamykania.
+(30) Łączenie obiektów symetrycznych w pary — zasada symetrii.
+(31) Ruch w tym samym kierunku i tempie scala elementy w grupę — wspólny los.
+(32) Pusty bak nakierowuje percepcję na stacje — zgodność z chwilowym nastawieniem (potrzeba kieruje spostrzeganiem).
+(33) „Ubiegłe doświadczenia" oznaczają, że percepcja opiera się na tym, co już znamy — nie jest czystą kartą.
+(34) Wybór najprostszej, najbardziej regularnej interpretacji to prawo Prägnanz.
+(35) Fałsz — Gestalt twierdzi odwrotnie: najpierw całość, potem elementy. Kolejność „najpierw elementy" to asocjacjonizm.
+(36) Uwaga to mechanizm selekcji i redukcji informacji — decyduje, co zostanie dopuszczone do świadomości i dalej przetworzone.
+(37) Lejek = przewężenie przepuszczające tylko część informacji, resztę blokujące lub tłumiące.
+(38) Reflektor = ruchoma wiązka światła; to, co oświetlone, jest przetwarzane szybko i wyraźnie.
+(39) Uwaga ekstensywna dotyczy zakresu/pola — ilu obiektów jesteśmy w stanie pilnować.
+(40) Uwaga intensywna dotyczy siły zaangażowania zasobów i głębokości przetwarzania.
+(41) Uwaga nie „zwiększa fizycznej energii bodźców" — to nie jest jej funkcja. Pozostałe trzy to realne role uwagi.
+(42) Uwaga mimowolna jest uruchamiana automatycznie przez cechy samego bodźca (nagły dźwięk, ruch), niezależnie od woli.
+(43) Bodźce istotne dla zadania, na które należy reagować, to sygnały.
+(44) Stałe tło utrudniające wyłonienie sygnału to szum.
+(45) Ból zęba, głód i natrętne myśli pochodzą z wnętrza organizmu — dystraktory wewnętrzne.
+(46) Selekcja pierwotna zachodzi na poziomie cech fizycznych bodźca, jeszcze przed nadaniem mu znaczenia.
+(47) Selekcja trzeciego rzędu dotyczy programowania reakcji ruchowej lub trwałego zapisu. (d) opisuje selekcję wtórną.
+(48) Usłyszenie własnego imienia w gwarze (cocktail party) dowodzi, że bodźce „ignorowane" są jednak częściowo analizowane znaczeniowo.
+(49) Test Stroopa bada kontrolę uwagi i podatność na interferencję.
+(50) Czujność to utrzymywanie gotowości na rzadkie, mało wyraziste sygnały.
+(51) Wg teorii detekcji sygnałów skuteczność detekcji zależy od wrażliwości obserwatora i od przyjętego kryterium decyzyjnego.
+(52) Kryterium rygorystyczne = mało fałszywych alarmów, ale większe ryzyko przeoczenia sygnału.
+(53) Czujność (przedłużoną koncentrację) bada się Zegarem Mackwortha (CPT).
+(54) Pop-out: obiekt różni się jedną wyrazistą cechą i „wyskakuje" z tła (przeszukiwanie równoległe, niezależne od liczby dystraktorów).
+(55) Poszukiwanie koniunkcyjne dotyczy kombinacji cech, więc wymaga sprawdzania obiektów po kolei i kontrolowanej uwagi.
+(56) Podzielność jest możliwa, gdy zadania korzystają z różnych pul zasobów lub przynajmniej jedno jest w pełni zautomatyzowane.
+(57) Koszty przełączania = po zmianie zadania pierwsza reakcja jest wolniejsza i bardziej błędna (system wygasza stary program, ładuje nowy).
+(58) Przerzutność bada Test Łączenia Punktów (TMT) — naprzemienne łączenie cyfr i liter.
+(59) Model Broadbenta: filtr selekcjonuje na podstawie cech fizycznych bodźca, działając na zasadzie „wszystko albo nic".
+(60) Model Treisman: informacje nieistotne są osłabiane (a nie blokowane bezpowrotnie), a decyzja zapada na podstawie analizy znaczenia.
+(61) Prawda — model Deutschów (późnej selekcji): wszystko jest w pełni analizowane, a filtr działa dopiero przed świadomością / pamięcią operacyjną.
+(62) Ebbinghaus to krzywa zapominania i uczenie się bezsensownych sylab.
+(63) Rekonstrukcyjny charakter pamięci i krytykę „czystej pamięci" Ebbinghausa wiąże się z Bartlettem.
+(64) Rozróżnienie pamięci pierwotnej i wtórnej wprowadził William James.
+(65) Pamięć autobiograficzną kojarzy się z Galtonem.
+(66) Wyparcie i amnezję dziecięcą wiąże się z Freudem.
+(67) Błędne przyporządkowanie: rekonstrukcyjny charakter pamięci to Bartlett, nie Ebbinghaus.
+(68) „Transdukcja energii bodźca" to proces percepcyjny, nie funkcja pamięci. Pozostałe to wymieniane funkcje pamięci.
+(69) Ślady pamięciowe (engramy) powstają w fazie zapamiętywania/kodowania.
+(70) Przechowywanie to faza utajona — o jej przebiegu wnioskujemy dopiero na podstawie wydobycia.
+(71) Informacje możemy kodować wizualnie, akustycznie i semantycznie (znaczeniowo).
+(72) Magazyny różnią się czasem przechowywania, pojemnością, kodami i sposobem porządkowania — nie lokalizacją w konkretnej półkuli.
+(73) Pamięć sensoryczna (ultrakrótka) przechowuje informację przez ok. 0,5 sekundy.
+(74) Ikoniczny dotyczy bodźców wzrokowych, echoiczny słuchowych — różnica modalności.
+(75) Fałsz — magazyn echoiczny dotyczy dźwięku; informacje wzrokowe obsługuje magazyn ikoniczny.
+(76) Klasyczna pojemność pamięci krótkotrwałej to 7±2 elementy.
+(77) Pamięć krótkotrwała koduje głównie akustycznie i wzrokowo, rzadko semantycznie.
+(78) Pamięć długotrwała koduje głównie semantycznie (choć możliwe też wizualnie i akustycznie).
+(79) Integrowanie nowej wiedzy z istniejącą i stabilizowanie śladu w pamięci długotrwałej to konsolidacja.
+(80) Wiedza ogólna o świecie (fakty, prawa, daty) to pamięć semantyczna.
+(81) Pamięć epizodyczna dotyczy osobiście doświadczonych zdarzeń — tego, co było, i planowania tego, co będzie.
+(82) „Wiem jak" (jazda na rowerze, mycie zębów) to pamięć proceduralna.
+(83) Pamięć niedeklaratywna jest nieświadoma (obejmuje m.in. proceduralną i torowanie) i trudna do zwerbalizowania.
+(84) Model akcentujący zależność trwałości zapisu od głębokości przetwarzania to teoria poziomów przetwarzania Craika i Lockharta.
+(85) Torowanie (priming) należy do pamięci utajonej — działa automatycznie, bez udziału świadomości.
+(86) Pamięć prospektywna odpowiada za realizację zaplanowanych zamiarów w przyszłości (np. wzięcie leku o 20).
+(87) Pamięć zbiorowa kształtuje się przez socjalizację i wychowanie. (a) opisuje pamięć indywidualną.
+(88) Efekt dezinformacji to zniekształcenie wspomnienia przez błędne informacje napływające już PO zdarzeniu.
+(89) Prawda — fałszywe wspomnienia to pamiętanie zdarzeń, które się nie wydarzyły, albo ich drastycznie zmienionych wersji.
+(90) Zanikanie śladu pamięciowego oznacza, że informacje „uciekają" na skutek braku ich używania.
+(91) Interferencja proaktywna: wcześniej nabyte informacje utrudniają nowe (gorsze B po uprzednim nauczeniu się A).
+(92) Interferencja retroaktywna: nowo wyuczone informacje (B) pogarszają przechowywanie wcześniejszych (A).
+(93) Amnezja wsteczna to niepamięć zdarzeń sprzed wydarzenia wywołującego amnezję.
+(94) Amnezja następcza to niemożność tworzenia nowych wspomnień po wydarzeniu, które ją spowodowało.
+(95) Demencja to choroba neurodegeneracyjna — stopniowy zanik funkcji poznawczych, dotykający głównie osób starszych.
+(96) Prawda wg materiału dr Gulina — w jego notatkach pamięć krótkotrwała bywa utożsamiana z roboczą (to przyjęte tam uproszczenie).
+(97) Myślenie to łączenie elementów reprezentacji świata (obrazów, pojęć, sądów) w dłuższe ciągi. (a) opisuje rozumowanie.
+(98) Myślenie autystyczne nie jest nastawione na konkretny cel — sprzyja fantazjowaniu i twórczości, typowe dla stanu relaksu.
+(99) W kontekście społecznym myślenie twórcze musi dać wytwór jednocześnie nowy i wartościowy (poznawczo, estetycznie, etycznie, użytkowo).
+(100) Trzy procesy rozwoju wg Piageta to asymilacja, akomodacja i równoważenie.
+(101) Akomodacja to zmiana istniejącego lub utworzenie nowego schematu pod wpływem nowych treści. (b) to asymilacja, (c) równoważenie.
+(102) Stadium operacji konkretnych przypada na 7–11 lat (sensomotoryczne 0–2, przedoperacyjne 2–7, operacji formalnych od ok. 12 lat).
+(103) Stałość masy dziecko zaczyna poprawnie ujmować ok. 7.–8. roku życia.
+(104) Dedukcja przebiega od ogółu do szczegółu i jest niezawodna — prawdziwość przesłanek gwarantuje pewność wniosku.
+(105) Efekt atmosfery to skłonność do wniosku sugerowanego przez klimat kwantyfikatorów przesłanek („wszyscy", „niektórzy").
+(106) Belief bias to uznanie wniosku za logicznie poprawny tylko dlatego, że jest wiarygodny i zgodny z przekonaniami.
+(107) W eksperymencie z kołem fortuny (ONZ) wylosowana liczba przesuwała oszacowania — to heurystyka zakotwiczenia i dostosowania.
+(108) Przecenianie zabójstw (bo są medialne i wyraziste) mimo realnej przewagi samobójstw to skutek heurystyki dostępności.
+(109) Heurystyka reprezentatywności prowadzi do ignorowania proporcji podstawowych — ocena na podstawie podobieństwa do typowego przypadku/stereotypu.
+(110) Niechęć do strat: psychologiczny ból po stracie jest średnio ok. dwukrotnie silniejszy niż radość z zysku o tej samej wartości (współczynnik 1,5–2,5).
+(111) Efekt obramowania: sposób mentalnej reprezentacji („rama") problemu decyzyjnego wpływa na treść podejmowanej decyzji.
 `;
 
 /* ============================================================
@@ -1553,6 +1690,21 @@ if(!BANK.length){
   try{ document.getElementById('question').textContent='Błąd: nie udało się wczytać bazy pytań.'; }catch(e){}
 }
 
+/* Wyjaśnienia: mapa { numerPytania: tekst }. Pytania bez wpisu (np. od 112 w górę)
+   po prostu nie mają wyjaśnienia — obsługuje to renderExplanation(). */
+function parseExplanations(){
+  const map={}; let cur=null;
+  explanationsText.split('\n').forEach(raw=>{
+    const line=raw.trim();
+    if(!line) return;
+    const m=line.match(/^\((\d+)\)\s*(.*)$/);
+    if(m){ cur=m[1]; map[cur]=m[2]; }
+    else if(cur){ map[cur]+=' '+line; }
+  });
+  return map;
+}
+const EXPLANATIONS = parseExplanations();
+
 /* ============================================================
    STAN APLIKACJI I TRYBY
    ============================================================ */
@@ -1560,14 +1712,14 @@ let currentMode = 'normal'; // 'normal' lub 'test'
 let queue=[];          
 let idx=0;
 let score=0, streak=0, answered=0;        
-let wrongMap={};       
-let shuffleOn=true;
-let curSeq=[];         
+let wrongMap={};
+let shuffleOn=false;   // domyślnie: pierwsze uruchomienie startuje od pytania 1, bez tasowania
+let curSeq=[];
 let isAnswered=false;
 let activeBank=BANK;
 let globalXP=0;
 let maxStreak=0;       // rekord najdłuższej serii (trwały, między sesjami)
-const MAXSTREAK_KEY = 'socjoQuiz_v2_maxStreak';
+const MAXSTREAK_KEY = 'procesyPozn_v1_maxStreak';
 
 /* ====== Cofanie odpowiedzi / podgląd rozwiązanych pytań ======
    answers[pozycja] = { picked, ok, seq } — zapamiętane odpowiedzi (do podglądu po cofnięciu).
@@ -1580,12 +1732,12 @@ const CHANGE_MSG = "Czy jesteś pewien, że chcesz zmienić odpowiedź?\n\nKorzy
 const NO_HISTORY_MSG = "Zmianę odpowiedzi można cofnąć tylko w trakcie tej samej sesji — zanim odświeżysz lub zamkniesz stronę.";
 
 /* ====== Ulubione ====== */
-const FAV_KEY = 'socjoQuiz_v2_favorites';
+const FAV_KEY = 'procesyPozn_v1_favorites';
 let favorites = new Set();
 let browseTab = 'all';
 
 /* ====== Dźwięk ====== */
-const SOUND_KEY = 'socjoQuiz_v2_sound';
+const SOUND_KEY = 'procesyPozn_v1_sound';
 let soundOn = true;
 let audioCtx = null;
 
@@ -1602,7 +1754,7 @@ const MAX_LAPSES        = 6;         // bezpiecznik: limit ponownych wstawień j
    Lekka warstwa do nauki rozłożonej na dni: słabe/nowe karty są ustawiane
    na początku zestawu, opanowane wędrują na koniec jako lekka powtórka.
    To NIE jest pełny harmonogram SR — kalibracja odstępów dzieje się w sesji. */
-const MASTERY_KEY = 'socjoQuiz_v2_mastery';
+const MASTERY_KEY = 'procesyPozn_v1_mastery';
 const MASTERY_GRADUATE = 2; // ile poprawnych „za pierwszym razem" (w różnych sesjach) = opanowane
 let mastery = {};           // { [id]: liczba } 0 = słabe, >=GRADUATE = opanowane, brak klucza = nowe
 
@@ -1740,7 +1892,7 @@ function bloomWrong(){
    PERSYSTENCJA Z ROZDZIELENIEM TRYBÓW W LOCALSTORAGE
    ============================================================ */
 function getSaveKey() {
-  return currentMode === 'test' ? 'socjoQuiz_v2_test' : 'socjoQuiz_v2_normal';
+  return currentMode === 'test' ? 'procesyPozn_v1_test' : 'procesyPozn_v1_normal';
 }
 
 function saveState(){
@@ -1749,8 +1901,8 @@ function saveState(){
     localStorage.setItem(getSaveKey(), JSON.stringify({
       queue, idx, score, streak, answered, wrongMap, shuffleOn, bloom, peak, activeBankIds, answers
     }));
-    localStorage.setItem('socjoQuiz_v2_globalXP', globalXP);
-    localStorage.setItem('socjoQuiz_v2_currentMode', currentMode);
+    localStorage.setItem('procesyPozn_v1_globalXP', globalXP);
+    localStorage.setItem('procesyPozn_v1_currentMode', currentMode);
   }catch(e){}
 }
 
@@ -1779,7 +1931,7 @@ function reconcileQueueWithBank(){
 
 function loadState(){
   try{
-    const gXP = localStorage.getItem('socjoQuiz_v2_globalXP');
+    const gXP = localStorage.getItem('procesyPozn_v1_globalXP');
     if(gXP !== null) globalXP = parseInt(gXP, 10);
 
     const s = JSON.parse(localStorage.getItem(getSaveKey()));
@@ -1805,7 +1957,7 @@ function loadState(){
 function clearState(){ 
   try{ 
     localStorage.removeItem(getSaveKey()); 
-    localStorage.setItem('socjoQuiz_v2_globalXP', globalXP); 
+    localStorage.setItem('procesyPozn_v1_globalXP', globalXP); 
   }catch(e){} 
 }
 
@@ -1852,6 +2004,21 @@ function updateUIForMode(){
   }
 }
 
+/* Wyjaśnienie poprawnej odpowiedzi — pokazywane PO udzieleniu odpowiedzi.
+   Dla pytań bez wpisu w EXPLANATIONS (np. od 112 w górę) pokazuje dyskretną notkę. */
+function renderExplanation(q, box){
+  const txt = EXPLANATIONS[q.id];
+  const div = document.createElement('div');
+  if(txt){
+    div.className = 'explain';
+    div.innerHTML = '<div class="explain-h">💡 Wyjaśnienie</div><div class="explain-body">'+escapeHtml(txt)+'</div>';
+  } else {
+    div.className = 'explain none';
+    div.innerHTML = '<div class="explain-h">💡 Wyjaśnienie</div><div class="explain-body">Dla tego pytania nie ma jeszcze szczegółowego wytłumaczenia.</div>';
+  }
+  box.appendChild(div);
+}
+
 function showQuestion(){
   isAnswered=false;
   if(idx>=queue.length){ return finish(); }
@@ -1896,6 +2063,7 @@ function showQuestion(){
       hint.textContent='To pytanie masz już rozwiązane. Kliknij inną opcję, aby zmienić odpowiedź.';
       box.appendChild(hint);
     }
+    renderExplanation(q, box);
     $('next').classList.remove('hidden');
     updateStats();
     return;
@@ -1943,6 +2111,7 @@ function renderSeqReview(q, box){
     fb.innerHTML='Twoja kolejność: <b>'+userText+'</b><br>Poprawna: <b>'+correctText+'</b>';
   }
   box.appendChild(fb);
+  renderExplanation(q, box);
   const chg=document.createElement('button');
   chg.type='button'; chg.className='ghost'; chg.style.marginTop='12px';
   chg.textContent='↻ Zmień odpowiedź';
@@ -1972,7 +2141,7 @@ function restoreState(s){
   recentCats = s.recentCats.slice();
   // Te wartości są też trzymane osobno w localStorage — uzgodnij je po cofnięciu.
   saveMastery(); saveCatState();
-  try{ localStorage.setItem('socjoQuiz_v2_globalXP', globalXP); localStorage.setItem(MAXSTREAK_KEY, maxStreak); }catch(e){}
+  try{ localStorage.setItem('procesyPozn_v1_globalXP', globalXP); localStorage.setItem(MAXSTREAK_KEY, maxStreak); }catch(e){}
 }
 /* Przywróć stan sprzed odpowiedzi na pozycji i; usuń podgląd/snapshoty dla pozycji >= i. */
 function rewindTo(i){
@@ -2189,7 +2358,7 @@ $('shuffle-toggle').addEventListener('change', e=>{
 function toggleMode() {
   saveState();
   currentMode = (currentMode === 'normal') ? 'test' : 'normal';
-  localStorage.setItem('socjoQuiz_v2_currentMode', currentMode);
+  localStorage.setItem('procesyPozn_v1_currentMode', currentMode);
   
   updateUIForMode();
   
@@ -2224,15 +2393,15 @@ function restart(){ startFresh(false); }
 /* ============================================================
    EKSPORT / IMPORT POSTĘPU
    ============================================================
-   Cały postęp siedzi w localStorage pod kluczami „socjoQuiz_v2_*"
+   Cały postęp siedzi w localStorage pod kluczami „procesyPozn_v1_*"
    (opanowanie pytań, XP/poziom, bieżące sesje, liczniki kotów).
    localStorage jest osobny dla każdej przeglądarki/urządzenia, więc
    eksport do pliku pozwala przenieść postęp np. z laptopa na telefon. */
 /* KONFIG: ZAPIS-POSTEPU — przedrostek kluczy localStorage.
    Gdy z szablonu robisz stronę dla INNEGO przedmiotu hostowaną w tej
-   samej domenie, zamień w CAŁYM pliku frazę "socjoQuiz_v2" na nową
+   samej domenie, zamień w CAŁYM pliku frazę "procesyPozn_v1" na nową
    (np. "psychoQuiz_v1"), żeby postępy obu stron się nie mieszały. */
-const SAVE_PREFIX = 'socjoQuiz_v2_';
+const SAVE_PREFIX = 'procesyPozn_v1_';
 
 function collectProgress(){
   const data = {};
@@ -2300,10 +2469,10 @@ function resetSession(){
   } else {
       activeBank = BANK;
   }
-  shuffleOn=true; 
-  $('shuffle-toggle').checked=true; 
-  $('shuffle-switch').classList.add('on');
-  startFresh(false); 
+  shuffleOn=false;
+  $('shuffle-toggle').checked=false;
+  $('shuffle-switch').classList.remove('on');
+  startFresh(false);
 }
 
 /* ============================================================
@@ -2341,7 +2510,7 @@ const CAT_FALLBACK = {
 
 let catFiles  = { good:[...CAT_FALLBACK.good], bad:[...CAT_FALLBACK.bad] };
 let recentCats = [];                          // ostatnio pokazane („typ/plik"), maks. 2
-const CAT_STATE_KEY = 'socjoQuiz_v2_cats';
+const CAT_STATE_KEY = 'procesyPozn_v1_cats';
 function newCatThreshold(){ return CAT_MIN + Math.floor(Math.random()*(CAT_MAX-CAT_MIN+1)); }
 let catCounters = { good:{n:0,target:newCatThreshold()}, bad:{n:0,target:newCatThreshold()} };
 
@@ -2649,7 +2818,7 @@ function init(){
   updateFavCount();
   discoverCats();
   { const ms = localStorage.getItem(MAXSTREAK_KEY); if(ms !== null) maxStreak = parseInt(ms,10) || 0; }
-  const savedMode = localStorage.getItem('socjoQuiz_v2_currentMode');
+  const savedMode = localStorage.getItem('procesyPozn_v1_currentMode');
   if (savedMode) currentMode = savedMode;
   
   updateUIForMode();
@@ -2663,8 +2832,8 @@ function init(){
   } else {
     if(currentMode === 'test') activeBank = shuffle([...BANK]).slice(0, 40) /* KONFIG: TEST — liczba pytań w trybie testu */;
     else activeBank = BANK;
-    $('shuffle-toggle').checked=true;
-    $('shuffle-switch').classList.add('on');
+    $('shuffle-toggle').checked=shuffleOn;
+    $('shuffle-switch').classList.toggle('on', shuffleOn);
     updateStats();
     startFresh(false);
   }
