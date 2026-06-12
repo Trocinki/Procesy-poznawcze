@@ -202,6 +202,14 @@ header.top{
 .btn-mode:hover{background:var(--accent);color:var(--on-accent);transform:translateY(-1px);
   box-shadow:0 8px 20px -8px hsl(var(--accent-h) 70% 45% / .5)}
 
+/* ====== Przycisk zakresu „Alchemy of Money" (złoty, z trwałym stanem wciśnięcia) ====== */
+#btn-scope{border-color:var(--gold-bd);color:var(--gold)}
+#btn-scope:hover{background:var(--gold);color:var(--bg);border-color:transparent;
+  box-shadow:0 8px 20px -8px hsl(36 70% 45% / .55)}
+#btn-scope.active{background:var(--gold);color:var(--bg);border-color:transparent;
+  box-shadow:0 8px 20px -8px hsl(36 70% 45% / .55)}
+#btn-scope.active:hover{filter:brightness(1.08)}
+
 /* ====== Pasek postępu ====== */
 #progress{height:6px;border-radius:999px;background:var(--field);border:1px solid var(--line);overflow:hidden;margin-bottom:22px}
 #progress > div{height:100%;width:0;border-radius:999px;
@@ -560,6 +568,7 @@ html[data-theme="light"] .wn-overlay{background:hsl(228 40% 30% / .25)}
 
   <div class="toolbar">
     <button class="btn-mode" id="btn-mode" onclick="toggleMode()">🎓 Tryb testu</button>
+    <button class="btn-mode" id="btn-scope" onclick="toggleScope()" title="Tylko pytania dr Ackermann (112–149)">🧪 Alchemy of Money</button>
     <div class="tool-cluster">
       <button class="tool-icon" id="browse-open-btn" onclick="openBrowse('all')" title="Przeglądaj wszystkie pytania (bez odpowiadania)" aria-label="Przeglądaj pytania">📖</button>
       <button class="tool-icon" id="fav-open-btn" onclick="openBrowse('fav')" title="Twoje ulubione pytania" aria-label="Ulubione pytania">★<span id="fav-count" class="tool-badge hidden">0</span></button>
@@ -616,8 +625,8 @@ html[data-theme="light"] .wn-overlay{background:hsl(228 40% 30% / .25)}
   </div>
 
   <div class="card hidden" id="summary">
-    <!-- KONFIG: LICZBA-PYTAN — tekst banera po ukończeniu całej bazy (zaktualizuj liczbę przy zmianie bazy pytań) -->
-    <div id="completion-banner" class="hidden">🐱 Gratulacje! Ukończono wszystkie 149 pytań! 🎉</div>
+    <!-- KONFIG: LICZBA-PYTAN — baner po ukończeniu zestawu; liczba pytań jest teraz wstawiana automatycznie w finish() (ten tekst to tylko wartość zapasowa) -->
+    <div id="completion-banner" class="hidden">🐱 Gratulacje! Ukończono wszystkie pytania! 🎉</div>
     <h2>Podsumowanie</h2>
     <p style="color:var(--ink-soft);margin-top:0">Wynik z pierwszej próby</p>
     <div class="score-big"><span id="fscore">0</span> / <span id="ftot">0</span></div>
@@ -630,7 +639,7 @@ html[data-theme="light"] .wn-overlay{background:hsl(228 40% 30% / .25)}
   </div>
 
   <!-- KONFIG: WERSJA — numer wersji aplikacji widoczny w stopce -->
-  <footer class="credit">Maciej Skiba | v1.9.0</footer>
+  <footer class="credit">Maciej Skiba | v1.9.1</footer>
   <div class="whatsnew-wrap">
     <button class="whatsnew-btn" onclick="openWhatsNew()">Co nowego?</button>
   </div>
@@ -644,6 +653,7 @@ html[data-theme="light"] .wn-overlay{background:hsl(228 40% 30% / .25)}
     <div class="wn-ver">Najnowsze zmiany</div>
     <!-- KONFIG: CO-NOWEGO — lista zmian w okienku „Co nowego?" (najnowsze na górze) -->
     <ul class="wn-list">
+      <li><b>Alchemy of Money.</b> Złoty przycisk <span class="wn-em">🧪 Alchemy of Money</span> obok trybu testu ogranicza WSZYSTKIE tryby (nauka, test, fiszki, słabe punkty, przeglądanie) do pytań dr Ackermann (112–149). Liczniki opanowania pokazują wtedy postęp w tym zakresie, a sesje obu zakresów zapisują się osobno — nic nie przepada.</li>
       <li><b>Tryb fiszek.</b> W menu <span class="wn-em">⚙</span> → <span class="wn-em">🔄 Tryb fiszek</span>: najpierw widzisz samo pytanie, przypominasz sobie odpowiedź, a potem odsłaniasz ją razem z wyjaśnieniem i oceniasz, czy wiedziałeś/-aś.</li>
       <li><b>Słabe punkty.</b> W menu <span class="wn-em">⚙</span> → <span class="wn-em">🎯 Słabe punkty</span>: drill złożony tylko z pytań jeszcze nieopanowanych. Licznik pokazuje, ile ich zostało.</li>
       <li><b>Wyjaśnienia odpowiedzi.</b> Po udzieleniu odpowiedzi pod pytaniem pojawia się <span class="wn-em">💡 Wyjaśnienie</span> poprawnej odpowiedzi. Pytania bez gotowego wyjaśnienia mają dyskretną notkę.</li>
@@ -1748,6 +1758,21 @@ let curSeq=[];
 let isAnswered=false;
 let activeBank=BANK;
 let globalXP=0;
+
+/* ====== Zakres pytań: pełna baza vs „Alchemy of Money" (dr Ackermann) ======
+   KONFIG: ZAKRES-AM — przedział numerów pytań objętych przyciskiem 🧪.
+   Zakres działa w poprzek trybów (nauka/test/fiszki/słabe punkty): aktywny
+   ogranicza pulę do pytań AM, wyłączony przywraca wszystko. Opanowanie pytań
+   jest wspólne (per pytanie), ale liczniki pokazują postęp w bieżącym zakresie.
+   Sesje każdego trybu są zapisywane OSOBNO dla każdego zakresu (sufiks "_am"). */
+const SCOPE_AM_MIN = 112, SCOPE_AM_MAX = 149;
+const SCOPE_KEY = 'procesyPozn_v1_scope';
+let scope = 'full';                 // 'full' | 'ackermann'
+function scopedBank(){
+  return scope === 'ackermann'
+    ? BANK.filter(q => +q.id >= SCOPE_AM_MIN && +q.id <= SCOPE_AM_MAX)
+    : BANK;
+}
 let maxStreak=0;       // rekord najdłuższej serii (trwały, między sesjami)
 const MAXSTREAK_KEY = 'procesyPozn_v1_maxStreak';
 
@@ -1833,7 +1858,8 @@ function bumpMastery(id, op){
   saveMastery();
 }
 function masteredCount(){
-  return BANK.reduce((n,q)=> n + (masteryBucket(q.id)==='mastered' ? 1 : 0), 0);
+  // Licznik w obrębie bieżącego zakresu (pełna baza lub AM) — opanowanie samo w sobie jest wspólne.
+  return scopedBank().reduce((n,q)=> n + (masteryBucket(q.id)==='mastered' ? 1 : 0), 0);
 }
 
 /* --- Klonowanie pytania do kolejki --- */
@@ -1935,10 +1961,11 @@ function bloomWrong(){
    PERSYSTENCJA Z ROZDZIELENIEM TRYBÓW W LOCALSTORAGE
    ============================================================ */
 function getSaveKey() {
-  return currentMode === 'test'  ? 'procesyPozn_v1_test'
-       : currentMode === 'weak'  ? 'procesyPozn_v1_weak'
-       : currentMode === 'flash' ? 'procesyPozn_v1_flash'
-       : 'procesyPozn_v1_normal';
+  const base = currentMode === 'test'  ? 'procesyPozn_v1_test'
+             : currentMode === 'weak'  ? 'procesyPozn_v1_weak'
+             : currentMode === 'flash' ? 'procesyPozn_v1_flash'
+             : 'procesyPozn_v1_normal';
+  return scope === 'ackermann' ? base + '_am' : base;   // osobna sesja dla zakresu AM
 }
 
 function saveState(){
@@ -1960,7 +1987,7 @@ function saveState(){
    z BANK, zachowując zapisaną KOLEJNOŚĆ opcji (tasowanie) i cały postęp sesji. */
 function reconcileQueueWithBank(){
   if(!Array.isArray(queue)) return;
-  queue = queue.filter(item => item && BANK.some(b => b.id === item.id)); // usuń pytania spoza bazy
+  queue = queue.filter(item => item && scopedBank().some(b => b.id === item.id)); // usuń pytania spoza bazy/zakresu
   queue.forEach(item => {
     const base = BANK.find(b => b.id === item.id);
     item.correct = base.correct;                       // poprawna odpowiedź zawsze z aktualnej bazy
@@ -1994,7 +2021,7 @@ function loadState(){
     if((currentMode === 'test' || currentMode === 'weak') && s.activeBankIds){
       activeBank = s.activeBankIds.map(id => BANK.find(q => q.id === id)).filter(Boolean);
     } else {
-      activeBank = BANK;   // 'normal' i 'flash' korzystają z pełnej bazy
+      activeBank = scopedBank();   // 'normal' i 'flash' korzystają z całego bieżącego zakresu
     }
     return true;
   }catch(e){ return false; }
@@ -2022,7 +2049,7 @@ function updateStats(){
 
   const mc=$('mastered-count'), bs=$('bank-size');
   if(mc) mc.textContent = masteredCount();
-  if(bs) bs.textContent = BANK.length;
+  if(bs) bs.textContent = scopedBank().length;
 
   let curLvl = LEVELS[0], nextLvl = LEVELS[1];
   for(let i=0; i<LEVELS.length; i++){
@@ -2034,10 +2061,10 @@ function updateStats(){
   $('lvl-name').textContent = curLvl.name;
   $('lvl-xp').textContent = nextLvl ? `${globalXP}/${nextLvl.req}` : globalXP;
 
-  // Licznik „słabych punktów" (pytania w toku, jeszcze nieopanowane) w menu.
+  // Licznik „słabych punktów" (pytania w toku, jeszcze nieopanowane) w bieżącym zakresie.
   const wc=$('mi-weak-count');
   if(wc){
-    const n=BANK.reduce((a,q)=> a + (masteryBucket(q.id)==='weak' ? 1 : 0), 0);
+    const n=scopedBank().reduce((a,q)=> a + (masteryBucket(q.id)==='weak' ? 1 : 0), 0);
     wc.textContent=n; wc.classList.toggle('hidden', n===0);
   }
 }
@@ -2048,10 +2075,13 @@ function updateUIForMode(){
   // Główny przycisk: w zwykłej nauce → wejście w test; w pozostałych trybach → powrót do nauki.
   $('btn-mode').textContent = (m==='normal') ? '🎓 Tryb testu' : '← Tryb nauki';
   // Dopisek w nagłówku zależny od trybu. KONFIG: NAZWA-STRONY (stałe na początku skryptu)
-  $('brand-em').textContent = m==='test'  ? BRAND_SUFFIX_TEST
-                            : m==='weak'  ? BRAND_SUFFIX_WEAK
-                            : m==='flash' ? BRAND_SUFFIX_FLASH
-                            : BRAND_SUFFIX_LEARN;
+  // W zakresie AM test jest mniejszy niż 40, więc liczbę pytań pokazujemy dynamicznie.
+  const testN = Math.min(40, scopedBank().length); /* KONFIG: TEST */
+  const sfx = m==='test'  ? (scope==='full' ? BRAND_SUFFIX_TEST : '— Test ('+testN+' '+pluralPytan(testN)+')')
+            : m==='weak'  ? BRAND_SUFFIX_WEAK
+            : m==='flash' ? BRAND_SUFFIX_FLASH
+            : BRAND_SUFFIX_LEARN;
+  $('brand-em').textContent = scope==='ackermann' ? sfx + ' · Alchemy of Money' : sfx;
   // Tasowanie ma sens tylko w zwykłej nauce.
   $('shuffle-switch').classList.toggle('hidden', m!=='normal');
   // „Opanowane" kształtują tylko tryby nauki — ukryj w teście.
@@ -2450,10 +2480,14 @@ function finish(){
     });
   } else $('errs').classList.add('hidden');
 
-  // Celebracja po ukończeniu CAŁEJ bazy (tryb nauki, nie test).
+  // Celebracja po ukończeniu CAŁEGO zestawu (tryb nauki, nie test).
   const banner = $('completion-banner');
   if(currentMode === 'normal' && answered >= activeBank.length){
-    if(banner) banner.classList.remove('hidden');
+    if(banner){
+      // Liczba pytań ustawiana dynamicznie — działa też dla mniejszego zakresu AM.
+      banner.textContent = '🐱 Gratulacje! Ukończono wszystkie ' + activeBank.length + ' ' + pluralPytan(activeBank.length) + '! 🎉';
+      banner.classList.remove('hidden');
+    }
     celebrateCompletion();
   } else if(banner){
     banner.classList.add('hidden');
@@ -2487,18 +2521,18 @@ $('shuffle-toggle').addEventListener('change', e=>{
    Zwraca false, gdy tryb „słabe punkty" nie ma czego ćwiczyć (wraca wtedy do nauki). */
 function setupActiveBankForMode(){
   if(currentMode === 'test'){
-    activeBank = shuffle([...BANK]).slice(0, 40); /* KONFIG: TEST — liczba pytań w trybie testu */
+    activeBank = shuffle([...scopedBank()]).slice(0, 40); /* KONFIG: TEST — liczba pytań w trybie testu (przy mniejszym zakresie bierze tyle, ile jest) */
   } else if(currentMode === 'weak'){
-    activeBank = BANK.filter(q => masteryBucket(q.id) === 'weak');   // pytania w toku (nieopanowane)
+    activeBank = scopedBank().filter(q => masteryBucket(q.id) === 'weak');   // pytania w toku (nieopanowane)
     if(!activeBank.length){
       currentMode = 'normal';
       try{ localStorage.setItem('procesyPozn_v1_currentMode','normal'); }catch(e){}
       updateUIForMode();
-      activeBank = BANK;
+      activeBank = scopedBank();
       return false;
     }
   } else {
-    activeBank = BANK;   // 'normal' i 'flash' → pełna baza
+    activeBank = scopedBank();   // 'normal' i 'flash' → cały bieżący zakres
   }
   return true;
 }
@@ -2515,14 +2549,9 @@ function resumeOrFresh(){
   return false;
 }
 
-function switchMode(target){
-  if(target === currentMode) return;
-  saveState();                                  // zapisz sesję dotychczasowego trybu
-  currentMode = target;
-  try{ localStorage.setItem('procesyPozn_v1_currentMode', currentMode); }catch(e){}
-  updateUIForMode();
-
-  if(resumeOrFresh()) return;                   // jest zapisana sesja tego trybu → wznów
+/* Wspólne wejście w bieżący tryb+zakres: wznów zapisaną sesję albo zbuduj nową. */
+function activateModeSession(){
+  if(resumeOrFresh()) return;                   // jest zapisana sesja tego trybu i zakresu → wznów
 
   const ok = setupActiveBankForMode();          // brak sesji → przygotuj nową
   if(!ok){
@@ -2532,9 +2561,36 @@ function switchMode(target){
   startFresh(false);
 }
 
+function switchMode(target){
+  if(target === currentMode) return;
+  saveState();                                  // zapisz sesję dotychczasowego trybu
+  currentMode = target;
+  try{ localStorage.setItem('procesyPozn_v1_currentMode', currentMode); }catch(e){}
+  updateUIForMode();
+  activateModeSession();
+}
+
 function toggleMode(){ switchMode(currentMode === 'normal' ? 'test' : 'normal'); }
 function enterWeakMode(){ switchMode(currentMode === 'weak'  ? 'normal' : 'weak'); }
 function enterFlashMode(){ switchMode(currentMode === 'flash' ? 'normal' : 'flash'); }
+
+/* ====== Przełącznik zakresu „Alchemy of Money" ======
+   Nic nie kasuje: sesja bieżącego zakresu jest zapisywana, a po powrocie wznawiana. */
+function updateScopeBtn(){
+  const b=$('btn-scope'); if(!b) return;
+  const on = scope === 'ackermann';
+  b.classList.toggle('active', on);
+  b.title = on ? 'Wyłącz — wróć do wszystkich pytań'
+              : 'Tylko pytania dr Ackermann ('+SCOPE_AM_MIN+'–'+SCOPE_AM_MAX+')';
+}
+function toggleScope(){
+  saveState();                                  // zapisz sesję dotychczasowego zakresu
+  scope = (scope === 'ackermann') ? 'full' : 'ackermann';
+  try{ localStorage.setItem(SCOPE_KEY, scope); }catch(e){}
+  updateScopeBtn();
+  updateUIForMode();
+  activateModeSession();
+}
 
 function startFresh(keepBloom){
   buildQueue();
@@ -2922,7 +2978,7 @@ function pluralPytan(n){
 }
 function renderBrowseList(){
   const term=($('browse-search').value||'').trim().toLowerCase();
-  let items = BANK.slice().sort((a,b)=> (+a.id)-(+b.id));
+  let items = scopedBank().slice().sort((a,b)=> (+a.id)-(+b.id));   // przeglądanie też respektuje zakres AM
   if(browseTab==='fav') items = items.filter(q=> isFav(q.id));
   if(term) items = items.filter(q=>
     ('('+q.id+') '+q.text+' '+q.options.map(o=>o.text).join(' ')).toLowerCase().includes(term));
@@ -2975,7 +3031,9 @@ function init(){
   { const ms = localStorage.getItem(MAXSTREAK_KEY); if(ms !== null) maxStreak = parseInt(ms,10) || 0; }
   const savedMode = localStorage.getItem('procesyPozn_v1_currentMode');
   if (savedMode) currentMode = savedMode;
-  
+  { const sc = localStorage.getItem(SCOPE_KEY); if(sc === 'ackermann' || sc === 'full') scope = sc; }
+  updateScopeBtn();
+
   updateUIForMode();
   
   if(loadState()){
